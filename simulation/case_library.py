@@ -70,6 +70,7 @@ class CaseLibrary:
             "case3": CaseLibrary.case_3_her2_positive(),
             "case4": CaseLibrary.case_4_metastatic(),
             "case5": CaseLibrary.case_5_borderline_chemo(),
+            "case6": CaseLibrary.case_6_adjuvant_vs_neoadjuvant(),
         }
 
     @staticmethod
@@ -235,6 +236,37 @@ She is here to discuss first-line treatment options for metastatic disease."""
 sentinel nodes. Given her Oncotype score of 18, chemotherapy benefit is uncertain per recent RxPONDER data
 (postmenopausal, node-negative). She has significant comorbidities that might increase chemotherapy risk.
 Patient is seeking guidance on whether chemotherapy is necessary or if endocrine therapy alone is sufficient."""
+        )
+
+    @staticmethod
+    def case_6_adjuvant_vs_neoadjuvant() -> CaseScenario:
+        """Newly diagnosed ER+ breast cancer - discussing adjuvant vs neoadjuvant chemotherapy"""
+        return CaseScenario(
+            case_id="case6",
+            title="Adjuvant vs Neoadjuvant Chemotherapy Decision",
+            patient_age=49,
+            diagnosis="Invasive ductal carcinoma, left breast",
+            stage="IIA (T2N0M0)",
+            histology="Invasive ductal carcinoma (IDC)",
+            grade="Grade 2 (moderately differentiated)",
+            tumor_size="2.8 cm (by imaging and clinical exam)",
+            nodes="Clinically node-negative (no palpable nodes, normal ultrasound)",
+            biomarkers={
+                "ER": "90% positive",
+                "PR": "75% positive",
+                "HER2": "Negative (IHC 1+)",
+                "Ki-67": "22%"
+            },
+            genomics={
+                "Oncotype DX": "Recurrence Score 26 (Intermediate-High, chemo benefit expected)"
+            },
+            comorbidities=["None"],
+            performance_status="ECOG 0 (fully active)",
+            additional_context="""Patient diagnosed 2 weeks ago via core needle biopsy. Staging complete -
+no evidence of distant metastases. Given Oncotype DX of 26, chemotherapy is indicated along with
+endocrine therapy. She is here to discuss treatment sequencing: adjuvant chemotherapy (surgery first,
+then chemo) versus neoadjuvant chemotherapy (chemo first, then surgery). She is interested in
+breast-conserving surgery if possible and wants to understand the pros and cons of each approach."""
         )
 
 
