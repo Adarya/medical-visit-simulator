@@ -333,6 +333,14 @@ class ConversationManager:
             if for_role == "oncologist":
                 # Get next priority topic
                 next_priority = self._get_next_topic()
+                topic_focus_map = {
+                    "results_summary": "summarize the patient's key pathology and genomic results in plain language and check understanding.",
+                    "plan": "state your clear treatment recommendation, including rationale and expected benefit, in 2-3 sentences.",
+                    "preferences": "ask about the patient's priorities, fears, or preferences and listen for concerns.",
+                    "side_effects": "outline the top 1-2 side effects most relevant to the recommendation, with reassurance.",
+                    "follow_up": "describe the follow-up plan, next appointments, and how you will stay in touch.",
+                    "rapport": "offer a brief supportive or rapport-building comment before closing."
+                }
                 remaining = [k for k, v in self.doctor_agenda.items() if not v]
                 remaining_str = ", ".join(remaining) if remaining else "(none)"
                 concern_str = ", ".join(sorted(self.patient_concerns)) if self.patient_concerns else "(none)"
@@ -349,28 +357,12 @@ class ConversationManager:
                     reply_rule = opening_dir
                 elif should_transition and next_priority:
                     # Force transition: acknowledge and move to next topic
-                    transition_phrases = [
-                        "We can discuss that more later, but let me also cover",
-                        "That's a good point. I also want to make sure we cover",
-                        "I understand your concern. Let me also mention",
-                        "We can come back to that. Another important thing is"
-                    ]
-                    transition_base = transition_phrases[0]  # Use first one as default
-                    
-                    if next_priority == "results_summary":
-                        transition_dir = f"{transition_base} your test results."
-                    elif next_priority == "plan":
-                        transition_dir = f"{transition_base} the treatment plan I'm recommending."
-                    elif next_priority == "preferences":
-                        transition_dir = f"{transition_base} what matters most to you in this decision."
-                    elif next_priority == "side_effects":
-                        transition_dir = f"{transition_base} potential side effects."
-                    elif next_priority == "follow_up":
-                        transition_dir = f"{transition_base} our follow-up plan."
-                    else:
-                        transition_dir = f"{transition_base} the next important point."
-                    
-                    reply_rule = transition_dir
+                    topic_focus = topic_focus_map.get(next_priority, "cover the next important point.")
+                    reply_rule = (
+                        "Acknowledge the patient's question or worry in ONE short sentence, "
+                        f"then pivot immediately to {topic_focus} "
+                        "Do not continue elaborating on the previous topic beyond that single acknowledgement."
+                    )
                 elif self.last_question_by == "patient" and self.topic_turn_count < 2 and not self.just_transitioned:
                     # Answer questions directly only if we haven't exceeded turn limit AND haven't just transitioned
                     reply_rule = "Answer the patient's last question directly."
