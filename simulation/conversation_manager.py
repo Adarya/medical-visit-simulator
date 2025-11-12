@@ -92,6 +92,10 @@ class ConversationManager:
         }
         self.patient_concerns = set()  # keywords gathered from patient turns
         self.last_question_by: Optional[str] = None  # "oncologist" or "patient"
+        
+        # Topic turn tracking for doctor-led conversation flow
+        self.current_topic: Optional[str] = None  # Current agenda item being discussed
+        self.topic_turn_count: int = 0  # Number of exchanges on current topic
 
     def get_conversation_history_for_llm(self, for_role: str) -> List[Dict[str, str]]:
         """
@@ -119,6 +123,36 @@ class ConversationManager:
             })
 
         return history
+
+    def _get_next_topic(self) -> Optional[str]:
+        """
+        Get the next priority topic from the agenda
+        
+        Returns:
+            Next topic key or None if all topics are complete
+        """
+        priority_order = [
+            "results_summary",
+            "plan",
+            "preferences",
+            "side_effects",
+            "follow_up",
+            "rapport"
+        ]
+        remaining = [k for k, v in self.doctor_agenda.items() if not v]
+        return next((p for p in priority_order if p in remaining), None)
+
+    def _should_transition_topic(self) -> bool:
+        """
+        Determine if we should transition to the next topic
+        
+        Returns:
+            True if topic should transition (after 2-3 exchanges)
+        """
+        # Force transition after 2-3 exchanges on current topic
+        if self.topic_turn_count >= 2:
+            return True
+        return False
 
     def should_end_conversation(self) -> bool:
         """
@@ -183,11 +217,22 @@ class ConversationManager:
 
         try:
             # 1. Oncologist opens with case review and initial assessment
-            yield await self._generate_message(
+            opening_msg = await self._generate_message(
                 agent=self.oncologist,
                 context=self.case_scenario,
                 is_opening=True
             )
+            # Detect initial topic from opening message
+            opening_text = opening_msg.content.lower()
+            if any(k in opening_text for k in ["result", "results", "margins", "nodes", "pathology", "scan", "imaging", "biopsy"]):
+                self.current_topic = "results_summary"
+            elif any(k in opening_text for k in ["plan", "treatment", "recommend", "therapy", "chemotherapy", "surgery"]):
+                self.current_topic = "plan"
+            else:
+                # Default to results_summary as it's typically first
+                self.current_topic = "results_summary"
+            self.topic_turn_count = 0
+            yield opening_msg
 
             # 2. Automatic back-and-forth until ending condition
             while not self.should_end_conversation():
@@ -203,6 +248,13 @@ class ConversationManager:
                 if self.should_end_conversation():
                     break
 
+                # Check if we should transition topics before oncologist responds
+                if self._should_transition_topic() and self.current_topic:
+                    # Mark current topic as complete and move to next
+                    self.doctor_agenda[self.current_topic] = True
+                    self.current_topic = self._get_next_topic()
+                    self.topic_turn_count = 0
+
                 # Oncologist responds
                 oncologist_msg = await self._generate_message(
                     agent=self.oncologist,
@@ -210,6 +262,39 @@ class ConversationManager:
                     is_opening=False
                 )
                 yield oncologist_msg
+
+                # Update topic tracking after doctor message
+                # Detect which topic the doctor actually covered based on agenda updates
+                # Check which topics were just marked as complete or mentioned
+                doctor_text = oncologist_msg.content.lower()
+                
+                # Determine current topic from doctor's message
+                detected_topic = None
+                if any(k in doctor_text for k in ["result", "results", "margins", "nodes", "pathology", "scan", "imaging", "biopsy"]):
+                    detected_topic = "results_summary"
+                elif any(k in doctor_text for k in ["plan", "treatment", "recommend", "therapy", "chemotherapy", "surgery"]):
+                    detected_topic = "plan"
+                elif any(k in doctor_text for k in ["preference", "what matters", "how do you feel", "your concerns", "your values"]):
+                    detected_topic = "preferences"
+                elif any(k in doctor_text for k in ["side effect", "side effects", "nausea", "fatigue", "hair", "risk", "risks"]):
+                    detected_topic = "side_effects"
+                elif any(k in doctor_text for k in ["follow", "follow-up", "next appointment", "schedule", "come back"]):
+                    detected_topic = "follow_up"
+                elif any(k in doctor_text for k in ["hi", "hello", "how are you", "good to see you"]):
+                    detected_topic = "rapport"
+                
+                # Update current topic and turn count
+                if detected_topic and detected_topic != self.current_topic:
+                    # Topic changed
+                    self.current_topic = detected_topic
+                    self.topic_turn_count = 1
+                elif self.current_topic:
+                    # Same topic, increment counter
+                    self.topic_turn_count += 1
+                elif not self.current_topic:
+                    # No current topic, use next priority
+                    self.current_topic = self._get_next_topic()
+                    self.topic_turn_count = 1
 
                 self.turn_count += 1
 
@@ -239,45 +324,63 @@ class ConversationManager:
         # Compose coaching hint based on dialogue state
         def _build_context_hint(for_role: str) -> str:
             if for_role == "oncologist":
-                # Determine next priority topic (front-load results and plan)
-                priority_order = [
-                    "results_summary",
-                    "plan",
-                    "preferences",
-                    "side_effects",
-                    "follow_up",
-                    "rapport"
-                ]
+                # Get next priority topic
+                next_priority = self._get_next_topic()
                 remaining = [k for k, v in self.doctor_agenda.items() if not v]
-                next_priority = next((p for p in priority_order if p in remaining), None)
                 remaining_str = ", ".join(remaining) if remaining else "(none)"
                 concern_str = ", ".join(sorted(self.patient_concerns)) if self.patient_concerns else "(none)"
 
+                # Check if we should transition topics (after 2-3 exchanges)
+                should_transition = self._should_transition_topic() and self.current_topic is not None
+                
                 # Opening-specific directive: greet briefly, then get to results and recommendation
                 if is_opening:
                     opening_dir = (
                         "Brief greeting (1 sentence), then immediately summarize key results "
                         "and give your initial recommendation in plain language."
                     )
-                else:
+                    reply_rule = opening_dir
+                elif should_transition and next_priority:
+                    # Force transition: acknowledge and move to next topic
+                    transition_phrases = [
+                        "We can discuss that more later, but let me also cover",
+                        "That's a good point. I also want to make sure we cover",
+                        "I understand your concern. Let me also mention",
+                        "We can come back to that. Another important thing is"
+                    ]
+                    transition_base = transition_phrases[0]  # Use first one as default
+                    
                     if next_priority == "results_summary":
-                        opening_dir = "Provide a concise results summary now."
+                        transition_dir = f"{transition_base} your test results."
                     elif next_priority == "plan":
-                        opening_dir = "State your clear recommendation now, including rationale in 1-2 sentences."
+                        transition_dir = f"{transition_base} the treatment plan I'm recommending."
                     elif next_priority == "preferences":
-                        opening_dir = "Briefly check the patient's preferences or concerns."
+                        transition_dir = f"{transition_base} what matters most to you in this decision."
                     elif next_priority == "side_effects":
-                        opening_dir = "Mention the top 1-2 side effects most relevant here."
+                        transition_dir = f"{transition_base} potential side effects."
                     elif next_priority == "follow_up":
-                        opening_dir = "Address follow-up or next steps briefly."
+                        transition_dir = f"{transition_base} our follow-up plan."
                     else:
-                        opening_dir = "Offer the next point clearly, then pause."
-
-                reply_rule = (
-                    "Answer the patient's last question directly."
-                    if self.last_question_by == "patient" else
-                    opening_dir
-                )
+                        transition_dir = f"{transition_base} the next important point."
+                    
+                    reply_rule = transition_dir
+                elif self.last_question_by == "patient" and self.topic_turn_count < 2:
+                    # Answer questions directly only if we haven't exceeded turn limit
+                    reply_rule = "Answer the patient's last question directly."
+                else:
+                    # Lead proactively to next topic
+                    if next_priority == "results_summary":
+                        reply_rule = "Provide a concise results summary now."
+                    elif next_priority == "plan":
+                        reply_rule = "State your clear recommendation now, including rationale in 1-2 sentences."
+                    elif next_priority == "preferences":
+                        reply_rule = "Briefly check the patient's preferences or concerns."
+                    elif next_priority == "side_effects":
+                        reply_rule = "Mention the top 1-2 side effects most relevant here."
+                    elif next_priority == "follow_up":
+                        reply_rule = "Address follow-up or next steps briefly."
+                    else:
+                        reply_rule = "Offer the next point clearly, then pause."
 
                 return (
                     f"Doctor agenda remaining: {remaining_str}. "
@@ -368,19 +471,57 @@ class ConversationManager:
             self.last_question_by = message.role
 
         if message.role == "oncologist":
-            # Heuristic agenda completion
-            if any(k in text for k in ["hi", "hello", "how are you", "good to see you"]):
+            # Improved heuristic agenda completion with expanded keywords
+            # Rapport - greeting and connection
+            if any(k in text for k in ["hi", "hello", "how are you", "good to see you", "nice to meet", "welcome"]):
                 self.doctor_agenda["rapport"] = True
-            if any(k in text for k in ["result", "margins", "nodes", "pathology", "scan"]):
+            
+            # Results summary - test results, pathology, imaging
+            if any(k in text for k in [
+                "result", "results", "margins", "nodes", "pathology", "pathological", 
+                "scan", "imaging", "biopsy", "tumor size", "grade", "stage",
+                "clear margins", "lymph nodes", "cancer cells", "test shows"
+            ]):
                 self.doctor_agenda["results_summary"] = True
-            if any(k in text for k in ["plan", "treatment", "we'll do", "recommend"]):
+            
+            # Plan - treatment recommendation
+            if any(k in text for k in [
+                "plan", "treatment", "we'll do", "recommend", "recommendation",
+                "i suggest", "i'd recommend", "we should", "going to do",
+                "therapy", "chemotherapy", "surgery", "radiation"
+            ]):
                 self.doctor_agenda["plan"] = True
-            if any(k in text for k in ["side effect", "nausea", "fatigue", "hair", "risk"]):
+            
+            # Side effects - risks and side effects
+            if any(k in text for k in [
+                "side effect", "side effects", "nausea", "fatigue", "hair", "hair loss",
+                "risk", "risks", "complications", "adverse", "tolerate",
+                "may cause", "could cause", "common side"
+            ]):
                 self.doctor_agenda["side_effects"] = True
-            if any(k in text for k in ["preference", "what matters", "how do you feel", "what do you think"]):
+            
+            # Preferences - patient values and concerns
+            if any(k in text for k in [
+                "preference", "preferences", "what matters", "how do you feel", 
+                "what do you think", "your concerns", "your values",
+                "important to you", "your goals", "your priorities"
+            ]):
                 self.doctor_agenda["preferences"] = True
-            if any(k in text for k in ["follow", "see you", "next appointment", "schedule"]):
+            
+            # Follow-up - next steps and scheduling
+            if any(k in text for k in [
+                "follow", "follow-up", "follow up", "see you", "next appointment",
+                "schedule", "scheduling", "come back", "return", "check back",
+                "monitoring", "surveillance", "next visit"
+            ]):
                 self.doctor_agenda["follow_up"] = True
+            
+            # Track topic transitions explicitly
+            # If doctor mentions moving on or transitioning, mark current topic as complete
+            if any(k in text for k in ["let me also", "another thing", "also important", "i also want", "let's also"]):
+                # If we're on a topic, mark it complete when transitioning
+                if self.current_topic and self.current_topic in self.doctor_agenda:
+                    self.doctor_agenda[self.current_topic] = True
         else:
             # Collect patient concerns keywords
             concern_keywords = [
