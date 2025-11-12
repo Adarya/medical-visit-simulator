@@ -1,0 +1,17 @@
+# Minimal requirements for Gemini-only setup
+streamlit>=1.30.0
+google-generativeai>=0.3.0
+python-dotenv>=1.0.0
+reportlab>=4.0.0
+pydantic>=2.5.0
+sqlalchemy>=2.0.0
+
+# Text-to-Speech dependencies
+gtts>=2.3.0
+
+# Optional: Install these if you want Claude or OpenAI support
+# anthropic>=0.18.0
+# openai>=1.12.0
+
+# Optional: Google Cloud TTS for better voice quality
+# google-cloud-texttospeech>=2.14.0
