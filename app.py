@@ -247,6 +247,15 @@ def sidebar():
         help="Higher = more creative, Lower = more focused"
     )
 
+    message_delay = st.sidebar.slider(
+        "Delay Between Messages (seconds):",
+        min_value=0,
+        max_value=60,
+        value=20,
+        step=1,
+        help="Time to wait between each message exchange in the conversation"
+    )
+
     st.sidebar.divider()
 
     # Text-to-Speech settings
@@ -282,6 +291,7 @@ def sidebar():
         "case_title": case_title,
         "max_turns": max_turns,
         "temperature": temperature,
+        "message_delay": message_delay,
         "enable_tts": enable_tts,
         "tts_engine": tts_engine
     }
@@ -338,6 +348,7 @@ def run_simulation_step(config):
         st.session_state.messages = []
         st.session_state.last_message_time = 0
         st.session_state.pending_audio = None  # Track pending audio
+        st.session_state.message_delay = config.get("message_delay", 20)  # Store delay from config
 
     # If paused, don't proceed
     if st.session_state.is_paused:
@@ -348,7 +359,8 @@ def run_simulation_step(config):
     # Check if we should wait between messages
     current_time = time.time()
     time_since_last = current_time - st.session_state.last_message_time
-    if time_since_last < 20.0:  # 20 second delay between messages
+    message_delay = st.session_state.get("message_delay", config.get("message_delay", 20))
+    if time_since_last < message_delay:
         time.sleep(0.1)  # Small delay before rerun
         st.rerun()
         return
