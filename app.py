@@ -143,10 +143,10 @@ def sidebar():
     # LLM Provider selection
     st.sidebar.subheader("3. Select AI Models")
 
-    # Build list of available providers
-    available_providers = ["Gemini"]  # Gemini is always available
+    # Build list of available providers (Gemini first as default)
+    available_providers = ["Gemini"]  # Gemini is always available and default
     if CLAUDE_AVAILABLE:
-        available_providers.insert(0, "Claude")
+        available_providers.append("Claude")  # Append instead of insert to keep Gemini first
     if OPENAI_AVAILABLE:
         available_providers.append("OpenAI")
 
@@ -154,10 +154,11 @@ def sidebar():
     if len(available_providers) == 1:
         st.sidebar.warning("Only Gemini is available")
 
-    # Oncologist model
+    # Oncologist model (default to Gemini - index 0)
     onc_provider = st.sidebar.selectbox(
         "Oncologist AI Provider:",
         available_providers,
+        index=0,  # Default to Gemini (first in list)
         key="onc_provider"
     )
 
@@ -165,13 +166,15 @@ def sidebar():
     onc_model = st.sidebar.selectbox(
         "Oncologist Model:",
         onc_models,
+        index=0,  # Default to first model
         key="onc_model"
     )
 
-    # Patient model
+    # Patient model (default to Gemini - index 0)
     patient_provider = st.sidebar.selectbox(
         "Patient AI Provider:",
         available_providers,
+        index=0,  # Default to Gemini (first in list)
         key="patient_provider"
     )
 
@@ -179,6 +182,7 @@ def sidebar():
     patient_model = st.sidebar.selectbox(
         "Patient Model:",
         patient_models,
+        index=0,  # Default to first model
         key="patient_model"
     )
 
