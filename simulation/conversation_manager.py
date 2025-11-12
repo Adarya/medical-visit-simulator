@@ -366,9 +366,22 @@ class ConversationManager:
                     f"{reply_rule} Keep 2-5 sentences, no lists."
                 )
             else:
-                concern_nudge = "If uncertain, ask one short follow-up question." if self.last_question_by != "patient" else "Answer the doctor's question directly."
+                # Build patient guidance that reinforces cooperative behavior
+                acknowledgement_hint = (
+                    "Begin with a brief acknowledgement such as \"Okay, thank you\" or \"I understand\" before raising anything new."
+                )
+                if self.last_question_by == "patient":
+                    concern_nudge = (
+                        "Answer the doctor's question directly and keep it to one short sentence. "
+                        "Do not add a new question until after the doctor finishes their agenda."
+                    )
+                else:
+                    concern_nudge = (
+                        "If you still have a worry, mention only one short concern or clarifying question. "
+                        "Otherwise, express understanding or readiness to follow the plan."
+                    )
                 return (
-                    f"Speak naturally. Keep 1-2 sentences. {concern_nudge} "
+                    f"Speak naturally in 1-2 sentences. {acknowledgement_hint} {concern_nudge} "
                     f"Stay consistent with your persona."
                 )
 
