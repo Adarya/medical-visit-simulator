@@ -96,6 +96,7 @@ class ConversationManager:
         # Topic turn tracking for doctor-led conversation flow
         self.current_topic: Optional[str] = None  # Current agenda item being discussed
         self.topic_turn_count: int = 0  # Number of exchanges on current topic
+        self.just_transitioned: bool = False  # Flag to track if we just transitioned topics
 
     def get_conversation_history_for_llm(self, for_role: str) -> List[Dict[str, str]]:
         """
@@ -254,6 +255,9 @@ class ConversationManager:
                     self.doctor_agenda[self.current_topic] = True
                     self.current_topic = self._get_next_topic()
                     self.topic_turn_count = 0
+                    self.just_transitioned = True  # Set flag to force transition in prompt
+                else:
+                    self.just_transitioned = False
 
                 # Oncologist responds
                 oncologist_msg = await self._generate_message(
@@ -262,6 +266,9 @@ class ConversationManager:
                     is_opening=False
                 )
                 yield oncologist_msg
+                
+                # Clear transition flag after doctor responds
+                self.just_transitioned = False
 
                 # Update topic tracking after doctor message
                 # Detect which topic the doctor actually covered based on agenda updates
@@ -330,8 +337,8 @@ class ConversationManager:
                 remaining_str = ", ".join(remaining) if remaining else "(none)"
                 concern_str = ", ".join(sorted(self.patient_concerns)) if self.patient_concerns else "(none)"
 
-                # Check if we should transition topics (after 2-3 exchanges)
-                should_transition = self._should_transition_topic() and self.current_topic is not None
+                # Check if we should transition topics (after 2-3 exchanges or if we just transitioned)
+                should_transition = (self._should_transition_topic() or self.just_transitioned) and self.current_topic is not None
                 
                 # Opening-specific directive: greet briefly, then get to results and recommendation
                 if is_opening:
@@ -364,8 +371,8 @@ class ConversationManager:
                         transition_dir = f"{transition_base} the next important point."
                     
                     reply_rule = transition_dir
-                elif self.last_question_by == "patient" and self.topic_turn_count < 2:
-                    # Answer questions directly only if we haven't exceeded turn limit
+                elif self.last_question_by == "patient" and self.topic_turn_count < 2 and not self.just_transitioned:
+                    # Answer questions directly only if we haven't exceeded turn limit AND haven't just transitioned
                     reply_rule = "Answer the patient's last question directly."
                 else:
                     # Lead proactively to next topic
