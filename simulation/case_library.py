@@ -65,12 +65,7 @@ class CaseLibrary:
     def get_all_cases() -> Dict[str, CaseScenario]:
         """Get all available cases"""
         return {
-            "case1": CaseLibrary.case_1_early_stage_er_positive(),
-            "case2": CaseLibrary.case_2_triple_negative(),
-            "case3": CaseLibrary.case_3_her2_positive(),
-            "case4": CaseLibrary.case_4_metastatic(),
-            "case5": CaseLibrary.case_5_borderline_chemo(),
-            "case6": CaseLibrary.case_6_adjuvant_vs_neoadjuvant(),
+            "brca2_case": CaseLibrary.brca2_carrier_adjuvant_vs_neoadjuvant(),
         }
 
     @staticmethod
@@ -85,166 +80,12 @@ class CaseLibrary:
         return {case_id: case.title for case_id, case in cases.items()}
 
     @staticmethod
-    def case_1_early_stage_er_positive() -> CaseScenario:
-        """Early-stage ER+/PR+/HER2- breast cancer"""
+    def brca2_carrier_adjuvant_vs_neoadjuvant() -> CaseScenario:
+        """BRCA2 carrier with ER+ breast cancer - discussing comprehensive treatment plan"""
         return CaseScenario(
-            case_id="case1",
-            title="Early-stage ER+/PR+ Breast Cancer",
-            patient_age=52,
-            diagnosis="Invasive ductal carcinoma, left breast",
-            stage="IIA (T2N0M0)",
-            histology="Invasive ductal carcinoma (IDC)",
-            grade="Grade 2 (moderately differentiated)",
-            tumor_size="2.5 cm",
-            nodes="0/3 sentinel nodes positive",
-            biomarkers={
-                "ER": "95% positive",
-                "PR": "80% positive",
-                "HER2": "Negative (IHC 1+)",
-                "Ki-67": "18%"
-            },
-            genomics={
-                "Oncotype DX": "Recurrence Score 22 (Intermediate)"
-            },
-            comorbidities=["Controlled hypertension", "Hypothyroidism on levothyroxine"],
-            performance_status="ECOG 0 (fully active)",
-            additional_context="""Patient underwent lumpectomy with sentinel lymph node biopsy 3 weeks ago.
-Margins are clear. She is now here to discuss adjuvant treatment planning. She is very anxious
-about making the right treatment decisions and wants to understand all her options."""
-        )
-
-    @staticmethod
-    def case_2_triple_negative() -> CaseScenario:
-        """Triple-negative breast cancer with node involvement"""
-        return CaseScenario(
-            case_id="case2",
-            title="Triple-Negative Breast Cancer",
-            patient_age=48,
-            diagnosis="Invasive ductal carcinoma, right breast",
-            stage="IIIA (T3N2M0)",
-            histology="Invasive ductal carcinoma (IDC)",
-            grade="Grade 3 (poorly differentiated)",
-            tumor_size="4.2 cm",
-            nodes="3/12 axillary nodes positive",
-            biomarkers={
-                "ER": "Negative (0%)",
-                "PR": "Negative (0%)",
-                "HER2": "Negative (IHC 0)",
-                "Ki-67": "65%"
-            },
-            genomics={
-                "BRCA1/2 testing": "Negative (germline)",
-                "PD-L1": "CPS 15 (positive)"
-            },
-            comorbidities=["None"],
-            performance_status="ECOG 0 (fully active)",
-            additional_context="""Patient completed neoadjuvant chemotherapy (dose-dense AC-T with pembrolizumab)
-4 weeks ago. She underwent mastectomy with axillary lymph node dissection. Pathology showed residual
-cancer burden RCB-II (moderate residual disease). She is here to discuss adjuvant/post-neoadjuvant
-treatment options."""
-        )
-
-    @staticmethod
-    def case_3_her2_positive() -> CaseScenario:
-        """HER2-positive breast cancer"""
-        return CaseScenario(
-            case_id="case3",
-            title="HER2-Positive Breast Cancer",
-            patient_age=56,
-            diagnosis="Invasive ductal carcinoma, left breast",
-            stage="IIB (T2N1M0)",
-            histology="Invasive ductal carcinoma (IDC)",
-            grade="Grade 3 (poorly differentiated)",
-            tumor_size="3.0 cm",
-            nodes="2/8 axillary nodes positive",
-            biomarkers={
-                "ER": "Negative (5%)",
-                "PR": "Negative (0%)",
-                "HER2": "Positive (IHC 3+)",
-                "Ki-67": "45%"
-            },
-            genomics=None,
-            comorbidities=["Well-controlled Type 2 Diabetes", "Mild asthma"],
-            performance_status="ECOG 1 (symptomatic but ambulatory)",
-            additional_context="""Patient diagnosed 2 weeks ago via core needle biopsy.
-Staging workouts (CT chest/abdomen/pelvis, bone scan) negative for distant metastases.
-MUGA scan shows LVEF 60% (normal). She is here to discuss treatment plan. Patient works full-time
-and is concerned about treatment duration and impact on her work."""
-        )
-
-    @staticmethod
-    def case_4_metastatic() -> CaseScenario:
-        """Metastatic breast cancer with bone and liver involvement"""
-        return CaseScenario(
-            case_id="case4",
-            title="Metastatic ER+ Breast Cancer (De Novo)",
-            patient_age=59,
-            diagnosis="Metastatic invasive ductal carcinoma",
-            stage="IV (de novo metastatic)",
-            histology="Invasive ductal carcinoma (IDC)",
-            grade="Grade 2 (moderately differentiated)",
-            tumor_size="5.5 cm primary in right breast",
-            nodes="Clinical N2 (palpable axillary nodes)",
-            biomarkers={
-                "ER": "90% positive",
-                "PR": "70% positive",
-                "HER2": "Negative (IHC 1+)",
-                "Ki-67": "25%"
-            },
-            genomics={
-                "Foundation Medicine": "PIK3CA H1047R mutation detected",
-                "ESR1 mutations": "Not detected",
-                "TMB": "3 mutations/Mb (low)"
-            },
-            comorbidities=["Osteoporosis", "GERD"],
-            performance_status="ECOG 1 (symptomatic with back pain, but ambulatory)",
-            additional_context="""Patient presented with back pain. Imaging revealed diffuse bone metastases
-(spine, ribs, pelvis) and 3 liver lesions (largest 2.2 cm). Biopsy of liver lesion confirmed metastatic
-breast cancer. She is postmenopausal. This is her first diagnosis of breast cancer (de novo stage IV).
-She is here to discuss first-line treatment options for metastatic disease."""
-        )
-
-    @staticmethod
-    def case_5_borderline_chemo() -> CaseScenario:
-        """Borderline case where chemotherapy benefit is uncertain"""
-        return CaseScenario(
-            case_id="case5",
-            title="Borderline Chemotherapy Indication",
-            patient_age=67,
-            diagnosis="Invasive lobular carcinoma, right breast",
-            stage="IB (T1cN0M0)",
-            histology="Invasive lobular carcinoma (ILC)",
-            grade="Grade 2 (moderately differentiated)",
-            tumor_size="1.8 cm",
-            nodes="0/2 sentinel nodes positive",
-            biomarkers={
-                "ER": "100% positive",
-                "PR": "95% positive",
-                "HER2": "Negative (IHC 0)",
-                "Ki-67": "12%"
-            },
-            genomics={
-                "Oncotype DX": "Recurrence Score 18 (Intermediate, closer to low)"
-            },
-            comorbidities=[
-                "Chronic kidney disease stage 3a",
-                "Atrial fibrillation on anticoagulation",
-                "Osteoarthritis"
-            ],
-            performance_status="ECOG 1 (limited strenuous activity, but ambulatory)",
-            additional_context="""Patient underwent lumpectomy 4 weeks ago with clear margins and negative
-sentinel nodes. Given her Oncotype score of 18, chemotherapy benefit is uncertain per recent RxPONDER data
-(postmenopausal, node-negative). She has significant comorbidities that might increase chemotherapy risk.
-Patient is seeking guidance on whether chemotherapy is necessary or if endocrine therapy alone is sufficient."""
-        )
-
-    @staticmethod
-    def case_6_adjuvant_vs_neoadjuvant() -> CaseScenario:
-        """Newly diagnosed ER+ breast cancer - discussing adjuvant vs neoadjuvant chemotherapy"""
-        return CaseScenario(
-            case_id="case6",
-            title="Adjuvant vs Neoadjuvant Chemotherapy Decision",
-            patient_age=49,
+            case_id="brca2_case",
+            title="BRCA2 Carrier: Comprehensive Treatment Planning",
+            patient_age=40,
             diagnosis="Invasive ductal carcinoma, left breast",
             stage="IIA (T2N0M0)",
             histology="Invasive ductal carcinoma (IDC)",
@@ -258,15 +99,90 @@ Patient is seeking guidance on whether chemotherapy is necessary or if endocrine
                 "Ki-67": "22%"
             },
             genomics={
-                "Oncotype DX": "Recurrence Score 26 (Intermediate-High, chemo benefit expected)"
+                "Oncotype DX": "Recurrence Score 26 (Intermediate-High, chemo benefit expected)",
+                "BRCA2": "Known germline mutation (diagnosed 3 years ago after mother's breast cancer)"
             },
             comorbidities=["None"],
             performance_status="ECOG 0 (fully active)",
-            additional_context="""Patient diagnosed 2 weeks ago via core needle biopsy. Staging complete -
-no evidence of distant metastases. Given Oncotype DX of 26, chemotherapy is indicated along with
-endocrine therapy. She is here to discuss treatment sequencing: adjuvant chemotherapy (surgery first,
-then chemo) versus neoadjuvant chemotherapy (chemo first, then surgery). She is interested in
-breast-conserving surgery if possible and wants to understand the pros and cons of each approach."""
+            additional_context="""Patient is a 40-year-old premenopausal woman with newly diagnosed breast cancer.
+She was diagnosed 2 weeks ago via core needle biopsy. Staging workup complete - no distant metastases.
+
+BRCA2 STATUS (KNOWN): Patient has a known pathogenic BRCA2 germline mutation, diagnosed 3 years ago when her
+mother was diagnosed with breast cancer at age 45. She has been in high-risk surveillance (annual MRI + mammogram).
+Current cancer was detected on routine screening MRI. Her two sisters have also tested positive for the same
+BRCA2 mutation; one had prophylactic bilateral mastectomy last year.
+
+THREE TREATMENT COMPONENTS TO DISCUSS:
+
+1. CHEMOTHERAPY (DEFINITELY INDICATED):
+   - Oncotype DX 26 = clear chemotherapy benefit per TAILORx trial data
+   - Standard regimen options: TC (docetaxel/cyclophosphamide) × 4 cycles OR dose-dense AC-T
+   - Duration: 3-4 months
+   - Side effects: Hair loss, nausea, fatigue, neutropenia risk, premature menopause risk
+
+2. ENDOCRINE THERAPY (ESSENTIAL - ER 90% POSITIVE):
+   - Premenopausal ER+ disease requires discussion of:
+     * Tamoxifen alone (5-10 years) - standard of care
+     * Ovarian suppression + aromatase inhibitor (more aggressive, used in high-risk premenopausal)
+     * Ovarian suppression methods: monthly injections (Lupron) vs. surgical removal
+   - Must continue for at least 5 years, possibly 10 years
+   - Side effects: Hot flashes, mood changes, bone density loss (with AI), menopausal symptoms
+
+3. SURGERY - TIMING AND EXTENT (KEY DECISION POINT):
+
+   TIMING OPTIONS:
+   a) ADJUVANT SEQUENCE: Surgery → Chemo → Endocrine therapy (traditional approach)
+      - Pros: Immediate tumor removal, accurate pathologic staging, patient preference for "getting it out"
+      - Cons: Larger tumor may require wider excision, miss chance to downstage
+
+   b) NEOADJUVANT SEQUENCE: Chemo → Surgery → Endocrine therapy (increasingly common)
+      - Pros: May shrink tumor (better cosmetic outcome with lumpectomy), in vivo test of chemo sensitivity,
+        pathologic complete response (pCR) is prognostic, growing evidence base
+      - Cons: Delays definitive local control, requires more monitoring, patient anxiety about "waiting"
+      - NOTE: RxPONDER trial shows neoadjuvant approach is equivalent for survival in ER+ disease
+
+   EXTENT OPTIONS (BRCA2 impacts this significantly):
+   a) Breast-conserving surgery (lumpectomy) + radiation
+      - Patient's preference
+      - Feasible for 2.8 cm tumor (may be even smaller after neoadjuvant chemo if chosen)
+      - Requires radiation therapy (6 weeks, 5 days/week)
+      - BUT: As BRCA2 carrier, 40% risk of contralateral breast cancer - will need ongoing surveillance
+
+   b) Unilateral mastectomy (left breast only)
+      - Treats current cancer
+      - Avoids radiation
+      - Still need surveillance of right breast (BRCA2 risk remains)
+
+   c) Bilateral mastectomy (both breasts)
+      - Treats current cancer AND eliminates future breast cancer risk
+      - Many BRCA2+ patients choose this (her sister did prophylactically)
+      - Reconstruction options: immediate vs. delayed; implant vs. autologous (DIEP flap)
+      - Major surgery with longer recovery but eliminates surveillance burden
+
+PATIENT CONTEXT:
+- Married with two children (ages 5 and 8)
+- Works full-time (elementary school teacher)
+- Strong family history: Mother (breast cancer at 45), maternal aunt (ovarian cancer at 52)
+- Two sisters both BRCA2+; one already had prophylactic bilateral mastectomy
+- Has been anxious about "when, not if" she'd get cancer since genetic testing 3 years ago
+- Wants to "do everything right" and minimize future risk
+- Concerned about treatment impact on ability to care for children during school year
+- Asking about optimal timing to start treatment (summer vs. during school year)
+
+ADDITIONAL CONSIDERATIONS FOR DISCUSSION:
+- Risk-reducing salpingo-oophorectomy (removing ovaries): typically recommended by age 40-45 in BRCA2 carriers
+  (10-20% ovarian cancer risk). Could be done after cancer treatment completed.
+- Genetic counseling for her children (50% chance each child inherited BRCA2)
+- Fertility preservation: Chemo may cause premature ovarian failure - should she consider egg/embryo freezing?
+  (Would delay treatment start by 2-3 weeks)
+
+SUMMARY FOR ONCOLOGIST:
+This visit should cover ALL THREE treatment components comprehensively:
+1. Chemotherapy: Which regimen, what to expect
+2. Endocrine therapy: Tamoxifen vs. ovarian suppression + AI, duration
+3. Surgery: Adjuvant vs. neoadjuvant timing AND lumpectomy vs. unilateral vs. bilateral mastectomy extent
+
+The BRCA2 mutation significantly influences surgical decision-making but doesn't change chemo/endocrine indications."""
         )
 
 
